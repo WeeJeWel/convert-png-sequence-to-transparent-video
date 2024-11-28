@@ -1,0 +1,7 @@
+{
+  "name": "convert-png-sequence-to-transparent-video",
+  "version": "1.0.0",
+  "bin": {
+    "convert-png-sequence-to-transparent-video": "./index.sh"
+  }
+}
