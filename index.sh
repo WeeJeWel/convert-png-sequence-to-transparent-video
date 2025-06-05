@@ -3,7 +3,7 @@
 # Function to display usage
 show_usage() {
   binary=$(basename "$0")
-  echo "Usage: $binary -i pattern [-o directory] [-f fps] [-h height]"
+  echo "Usage: $binary -i pattern [-o directory] [-f fps] [-h height] [-q_mov quality]"
   echo ""
   echo "Required:"
   echo "  -i pattern    Input file pattern (e.g., 'sequence.%d.png')"
@@ -12,9 +12,10 @@ show_usage() {
   echo "  -o directory  Output directory (defaults to current directory)"
   echo "  -f fps        Framerate (default: 24)"
   echo "  -h height     Output height in pixels (width scales automatically)"
+  echo "  -q_mov quality Quality for MOV output (default: 15, min: 0, max: 64)"
   echo ""
   echo "Example:"
-  echo "  $binary -i 'sequence.%d.png' -o ~/Desktop/output -f 30 -h 720"
+  echo "  $binary -i 'sequence.%d.png' -o ~/Desktop/output -f 30 -h 720 -q_mov 20"
   echo ""
   echo "Creates both .webm (Chrome/Firefox) and .mov (Safari) with transparency"
   exit 1
@@ -31,20 +32,22 @@ input_pattern=""
 output_dir="$PWD" # Default to current directory
 framerate=24
 height="" # Empty by default, meaning no resize
+q_mov=15 # Default quality for MOV
 
 # Parse command line arguments
-while getopts "i:o:f:h:" opt; do
-  case $opt in
-  i) input_pattern="$OPTARG" ;;
-  o) output_dir="$OPTARG" ;;
-  f) framerate="$OPTARG" ;;
-  h) height="$OPTARG" ;;
-  \?) show_usage ;;
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -i) input_pattern="$2"; shift 2 ;;
+    -o) output_dir="$2"; shift 2 ;;
+    -f) framerate="$2"; shift 2 ;;
+    -h) height="$2"; shift 2 ;;
+    -q_mov) q_mov="$2"; shift 2 ;;
+    *) echo "Unknown option: $1"; show_usage ;;
   esac
 done
 
 # Show usage if no arguments or no input pattern
-if [ $# -eq 0 ] || [ -z "$input_pattern" ]; then
+if [ -z "$input_pattern" ]; then
   show_usage
 fi
 
@@ -103,7 +106,7 @@ ffmpeg -framerate $framerate \
   -profile:v 4444 \
   -alpha_bits 8 \
   -pix_fmt yuva444p \
-  -q:v 15 \
+  -q:v $q_mov \
   -y \
   "${output_dir}/${output_base}.mov"
 
