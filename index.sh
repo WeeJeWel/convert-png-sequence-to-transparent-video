@@ -3,7 +3,7 @@
 # Function to display usage
 show_usage() {
   binary=$(basename "$0")
-  echo "Usage: $binary -i pattern [-o directory] [-f fps] [-h height] [-q_mov quality]"
+  echo "Usage: $binary -i pattern [-o directory] [-f fps] [-h height] [-q_mov quality] [-q_webm quality]"
   echo ""
   echo "Required:"
   echo "  -i pattern    Input file pattern (e.g., 'sequence.%d.png')"
@@ -12,10 +12,11 @@ show_usage() {
   echo "  -o directory  Output directory (defaults to current directory)"
   echo "  -f fps        Framerate (default: 24)"
   echo "  -h height     Output height in pixels (width scales automatically)"
-  echo "  -q_mov quality Quality for MOV output (default: 15, min: 0, max: 64)"
+  echo "  -q_mov quality Quality for MOV output (default: 15, min: 0, max: 64, lower is better)"
+  echo "  -q_webm quality Quality for WebM output (default: 10, min: 0, max: 63, lower is better)"
   echo ""
   echo "Example:"
-  echo "  $binary -i 'sequence.%d.png' -o ~/Desktop/output -f 30 -h 720 -q_mov 20"
+  echo "  $binary -i 'sequence.%d.png' -o ~/Desktop/output -f 30 -h 720 -q_mov 20 -q_webm 40"
   echo ""
   echo "Creates both .webm (Chrome/Firefox) and .mov (Safari) with transparency"
   exit 1
@@ -33,6 +34,7 @@ output_dir="$PWD" # Default to current directory
 framerate=24
 height="" # Empty by default, meaning no resize
 q_mov=15 # Default quality for MOV
+q_webm=10 # Default quality for WebM
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -42,6 +44,7 @@ while [[ $# -gt 0 ]]; do
     -f) framerate="$2"; shift 2 ;;
     -h) height="$2"; shift 2 ;;
     -q_mov) q_mov="$2"; shift 2 ;;
+    -q_webm) q_webm="$2"; shift 2 ;;
     *) echo "Unknown option: $1"; show_usage ;;
   esac
 done
@@ -49,6 +52,17 @@ done
 # Show usage if no arguments or no input pattern
 if [ -z "$input_pattern" ]; then
   show_usage
+fi
+
+# Validate quality values
+if ! [[ "$q_mov" =~ ^[0-9]+$ ]] || [ "$q_mov" -lt 0 ] || [ "$q_mov" -gt 64 ]; then
+  echo "Error: q_mov must be a number between 0 and 64"
+  exit 1
+fi
+
+if ! [[ "$q_webm" =~ ^[0-9]+$ ]] || [ "$q_webm" -lt 0 ] || [ "$q_webm" -gt 63 ]; then
+  echo "Error: q_webm must be a number between 0 and 63"
+  exit 1
 fi
 
 # Expand tilde in paths
@@ -90,7 +104,7 @@ ffmpeg -framerate $framerate \
   -i "$input_pattern" \
   $scale_filter \
   -c:v libvpx-vp9 \
-  -b:v 2M \
+  -crf $q_webm \
   -pix_fmt yuva420p \
   -auto-alt-ref 0 \
   -y \
